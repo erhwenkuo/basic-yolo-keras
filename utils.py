@@ -8,6 +8,7 @@ import colorsys
 import random
 from PIL import Image, ImageDraw, ImageFont
 
+# 產生(R,Y,B)的顏色組合列表
 def generate_colors(colors_count):
     # Generate colors for drawing bounding boxes.
     hsv_tuples = [(x / colors_count, 1., 1.)
@@ -21,11 +22,25 @@ def generate_colors(colors_count):
     random.seed(None)  # Reset seed to default.
     return colors
 
-# Generate 256 colors for drawing bounding boxes.
+# 產生256組的(R,Y,B)的顏色來讓展示時可以用給邊界框不同的顏色
 COLORS_NUM = 256
 rgb_colors = generate_colors(256)
 
+# 用來定義一個"邊界框"物件類別
 class BoundBox:
+    """邊界框(BoundingBox)物件類別
+
+    最小邊界矩形（MBR）也稱為邊界框，是對一個二維對象（例如點，線，面）的最大範圍的表達式 （x，y），
+    換言之，min（x），max（x），min（y），max（y）。 MBR是最小邊界框的二維表達。
+
+    建構參數:
+        x: 圖框的最左邊的點
+        y: 圖框的最上面的點
+        w: 圖框的寬
+        h: 圖框的高
+        c: 圖像檔存放的目錄路徑
+        classes: 一個包括所有圖像物件的機率張量numpy vector
+    """
     def __init__(self, x, y, w, h, c = None, classes = None):
         self.x     = x
         self.y     = y
@@ -49,6 +64,7 @@ class BoundBox:
             
         return self.score
 
+# 用來讀取Darknet預訓練權重檔案的類別
 class WeightReader:
     def __init__(self, weight_file):
         self.offset = 4
@@ -61,11 +77,12 @@ class WeightReader:
     def reset(self):
         self.offset = 4
 
+# 對圖像的每個像素進行歸一化處理
 def normalize(image):
-    image = image / 255.
-    
+    image = image / 255.    
     return image
 
+# 計算兩個邊界框的IoU(Intersection over Union)值
 def bbox_iou(box1, box2):
     x1_min  = box1.x - box1.w/2
     x1_max  = box1.x + box1.w/2

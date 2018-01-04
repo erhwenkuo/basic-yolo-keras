@@ -54,7 +54,7 @@ def _main_(args):
     #   Load trained weights
     ###############################    
 
-    print weights_path
+    print(weights_path)
     yolo.load_weights(weights_path)
 
     ###############################
@@ -90,7 +90,7 @@ def _main_(args):
         boxes = yolo.predict(image)
         image = draw_boxes(image, boxes, config['model']['labels'])
 
-        print len(boxes), 'boxes are found'
+        print(len(boxes), 'boxes are found')
 
         cv2.imwrite(image_path[:-4] + '_detected' + image_path[-4:], image)
 
