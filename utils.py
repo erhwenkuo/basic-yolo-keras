@@ -133,7 +133,7 @@ def draw_boxes(image, boxes, labels):
                     1e-3 * image.shape[0], 
                     #(0,255,0), 2)
                     rgb_colors[box.get_label()%COLORS_NUM], 2)        
-    return image        
+    return image[:,:,::-1] # 把[height, width, channels(BGR)] 轉換成 [height, width, channels(RGB)]
 
 def draw_bgr_image_boxes(image_bgr, boxes, labels):
     """將偵測出來的邊界框(BoundingBox)在原圖像上展現
@@ -194,8 +194,8 @@ def draw_bgr_image_boxes(image_bgr, boxes, labels):
         # 在圖像畫出圖像標籤
         draw.text(text_origin, img_label, fill=(0, 0, 0), font=font)
 
-        del draw        
-    return image
+        del draw
+    return np.array(image) # 轉換為numpy ndarray
 
 def draw_rgb_image_boxes(image_rgb, boxes, labels):
     """將偵測出來的邊界框(BoundingBox)在原圖像上展現
@@ -256,7 +256,7 @@ def draw_rgb_image_boxes(image_rgb, boxes, labels):
         draw.text(text_origin, img_label, fill=(0, 0, 0), font=font)
 
         del draw        
-    return image
+    return np.array(image) # 轉換為numpy ndarray
 
 def draw_pil_image_boxes(image_pil, boxes, labels):
     """將偵測出來的邊界框(BoundingBox)在原圖像上展現
@@ -316,7 +316,7 @@ def draw_pil_image_boxes(image_pil, boxes, labels):
         draw.text(text_origin, img_label, fill=(0, 0, 0), font=font)
         del draw
         
-    return image
+    return np.array(image) # 轉換為numpy ndarray
 
 def decode_netout(netout, obj_threshold, nms_threshold, anchors, nb_class):
     grid_h, grid_w, nb_box = netout.shape[:3]
