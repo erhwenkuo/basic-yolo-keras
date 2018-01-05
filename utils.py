@@ -266,6 +266,8 @@ def draw_pil_image_boxes(image_pil, boxes, labels):
         boxes: YOLO演算法預測出來的"邊界框"物件列表
         labels: 所有圖像物件的類別標籤列表(順序要與訓練時的順序相同)
     """
+    image = image_pil
+    
     # 設定字型
     font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                          size=np.floor(3e-2 * image.size[1]+0.5).astype('int32'))
