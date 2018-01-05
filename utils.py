@@ -118,48 +118,113 @@ def interval_overlap(interval_a, interval_b):
         else:
             return min(x2,x4) - x3  
 
-def draw_boxes(image, boxes, labels):
-    
+def draw_boxes(image, boxes, labels):    
     for box in boxes:
         xmin  = int((box.x - box.w/2) * image.shape[1])
         xmax  = int((box.x + box.w/2) * image.shape[1])
         ymin  = int((box.y - box.h/2) * image.shape[0])
         ymax  = int((box.y + box.h/2) * image.shape[0])
-
         cv2.rectangle(image, (xmin,ymin), (xmax,ymax), (0,255,0), 3)
         cv2.putText(image, 
                     #labels[box.get_label()] + ' ' + str(box.get_score()), 
                     labels[box.get_label()] + ' ' + "{:.2f}".format(box.get_score()), 
                     (xmin, ymin - 13), 
-                    #cv2.FONT_HERSHEY_SIMPLEX, 
-                    cv2.FONT_HERSHEY_PLAIN,
+                    cv2.FONT_HERSHEY_SIMPLEX,
                     1e-3 * image.shape[0], 
                     #(0,255,0), 2)
-                    rgb_colors[box.get_label()%COLORS_NUM], 2)
-        
+                    rgb_colors[box.get_label()%COLORS_NUM], 2)        
     return image        
 
-def draw_pil_image_boxes(image, boxes, labels):
-    # set font
+def draw_bgr_image_boxes(image_bgr, boxes, labels):
+    """將偵測出來的邊界框(BoundingBox)在原圖像上展現
+
+    參數:
+        image_bgr: 圖像轉換成numpy array: [height, width, channels(BGR)]的資料
+        boxes: YOLO演算法預測出來的"邊界框"物件列表
+        labels: 所有圖像物件的類別標籤列表(順序要與訓練時的順序相同)
+    """
+    # 把[height, width, channels(BGR)] 轉換成 [height, width, channels(RGB)]
+    image_rgb = image_bgr[:,:,::-1] 
+
+    # 將[height, width, channels(RGB)]的numpy array轉換成PIL.Image物件
+    image = Image.fromarray(image_bgr)
+
+    # 設定字型
     font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                          size=np.floor(3e-2 * image.size[1]+0.5).astype('int32'))
 
-    # compute appropriate thickness of line
+    # 計算合適的框線粗細
     thickness = (image.size[0]+image.size[1]) // 300    
 
+    # 迭代每個偵測出來的"邊界框"
     for box in boxes:
-        predicted_class = labels[box.get_label()]
-        score = box.get_score()
+        predicted_class = labels[box.get_label()] # 取得"預測的圖像類別"標籤
+        score = box.get_score() # 取得"邊界框"裡面有物體的信心分數(confidence score)
         img_label = '{} {:.2f}'.format(predicted_class, score)
 
-        draw = ImageDraw.Draw(image)
+        draw = ImageDraw.Draw(image) # 初始PIL.ImageDraw物件來在圖像上進行繪圖
+        label_size = draw.textsize(img_label, font)
+        # 計算"邊界框"的左上角與右下角的坐標
+        top = int((box.y - box.h/2) *  image.size[1])
+        left = int((box.x - box.w/2) * image.size[0])
+        bottom = int((box.y + box.h/2) * image.size[1])
+        right = int((box.x + box.w/2) * image.size[0])     
+
+        top = max(0, np.floor(top + 0.5).astype('int32'))
+        left = max(0, np.floor(left + 0.5).astype('int32'))
+        bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
+        right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
+
+        if top - label_size[1] >= 0:
+            text_origin = np.array([left, top - label_size[1]])
+        else:
+            text_origin = np.array([left, top + 1])
+
+        # 在圖像畫出"邊界框"
+        for i in range(thickness):
+            draw.rectangle(
+                [left + i, top + i, right - i, bottom - i],
+                outline=rgb_colors[box.get_label()%COLORS_NUM])
+
+        # 在圖像畫出四方型來做為圖像標籤的背景
+        draw.rectangle(
+            [tuple(text_origin), tuple(text_origin + label_size)],
+            fill=rgb_colors[box.get_label()%COLORS_NUM])
+
+        # 在圖像畫出圖像標籤
+        draw.text(text_origin, img_label, fill=(0, 0, 0), font=font)
+
+        del draw        
+    return image
+
+def draw_rgb_image_boxes(image_rgb, boxes, labels):
+    """將偵測出來的邊界框(BoundingBox)在原圖像上展現
+
+    參數:
+        image_bgr: 圖像轉換成numpy array: [height, width, channels(BGR)]的資料
+        boxes: YOLO演算法預測出來的"邊界框"物件列表
+        labels: 所有圖像物件的類別標籤列表(順序要與訓練時的順序相同)
+    """
+    # 將[height, width, channels(RGB)]的numpy array轉換成PIL.Image物件
+    image = Image.fromarray(image_rgb)
+
+    # 設定字型
+    font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
+                         size=np.floor(3e-2 * image.size[1]+0.5).astype('int32'))
+
+    # 計算合適的框線粗細
+    thickness = (image.size[0]+image.size[1]) // 300    
+
+    # 迭代每個偵測出來的"邊界框"
+    for box in boxes:
+        predicted_class = labels[box.get_label()] # 取得"預測的圖像類別"標籤
+        score = box.get_score() # 取得"邊界框"裡面有物體的信心分數(confidence score)
+        img_label = '{} {:.2f}'.format(predicted_class, score)
+
+        draw = ImageDraw.Draw(image) # 初始PIL.ImageDraw物件來在圖像上進行繪圖
         label_size = draw.textsize(img_label, font)
 
-        xmin  = int((box.x - box.w/2) * image.size[0])
-        xmax  = int((box.x + box.w/2) * image.size[0])
-        ymin  = int((box.y - box.h/2) * image.size[1])
-        ymax  = int((box.y + box.h/2) * image.size[1])
-
+        # 計算"邊界框"的左上角與右下角的坐標
         top = int((box.y - box.h/2) *  image.size[1])
         left = int((box.x - box.w/2) * image.size[0])
         bottom = int((box.y + box.h/2) * image.size[1])
@@ -176,20 +241,77 @@ def draw_pil_image_boxes(image, boxes, labels):
         else:
             text_origin = np.array([left, top + 1])
 
-        # draw a rectangle for image bounding box
+        # 在圖像畫出"邊界框"
         for i in range(thickness):
             draw.rectangle(
                 [left + i, top + i, right - i, bottom - i],
                 outline=rgb_colors[box.get_label()%COLORS_NUM])
 
-        # draw a rectangle as background for image label
+        # 在圖像畫出四方型來做為圖像標籤的背景
         draw.rectangle(
             [tuple(text_origin), tuple(text_origin + label_size)],
             fill=rgb_colors[box.get_label()%COLORS_NUM])
 
-        # draw image label text on image
+        # 在圖像畫出圖像標籤
         draw.text(text_origin, img_label, fill=(0, 0, 0), font=font)
 
+        del draw        
+    return image
+
+def draw_pil_image_boxes(image_pil, boxes, labels):
+    """將偵測出來的邊界框(BoundingBox)在原圖像上展現
+
+    參數:
+        image_pil: PIL.Image物件
+        boxes: YOLO演算法預測出來的"邊界框"物件列表
+        labels: 所有圖像物件的類別標籤列表(順序要與訓練時的順序相同)
+    """
+    # 設定字型
+    font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
+                         size=np.floor(3e-2 * image.size[1]+0.5).astype('int32'))
+
+    # 計算合適的框線粗細
+    thickness = (image.size[0]+image.size[1]) // 300    
+
+    # 迭代每個偵測出來的"邊界框"
+    for box in boxes:
+        predicted_class = labels[box.get_label()] # 取得"預測的圖像類別"標籤
+        score = box.get_score() # 取得"邊界框"裡面有物體的信心分數(confidence score)
+        img_label = '{} {:.2f}'.format(predicted_class, score)
+
+        draw = ImageDraw.Draw(image) # 初始PIL.ImageDraw物件來在圖像上進行繪圖
+        label_size = draw.textsize(img_label, font)
+
+        # 計算"邊界框"的左上角與右下角的坐標
+        top = int((box.y - box.h/2) *  image.size[1])
+        left = int((box.x - box.w/2) * image.size[0])
+        bottom = int((box.y + box.h/2) * image.size[1])
+        right = int((box.x + box.w/2) * image.size[0])
+        
+        #top, left, bottom, right = box
+        top = max(0, np.floor(top + 0.5).astype('int32'))
+        left = max(0, np.floor(left + 0.5).astype('int32'))
+        bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
+        right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
+
+        if top - label_size[1] >= 0:
+            text_origin = np.array([left, top - label_size[1]])
+        else:
+            text_origin = np.array([left, top + 1])
+
+        # 在圖像畫出"邊界框"
+        for i in range(thickness):
+            draw.rectangle(
+                [left + i, top + i, right - i, bottom - i],
+                outline=rgb_colors[box.get_label()%COLORS_NUM])
+
+        # 在圖像畫出四方型來做為圖像標籤的背景
+        draw.rectangle(
+            [tuple(text_origin), tuple(text_origin + label_size)],
+            fill=rgb_colors[box.get_label()%COLORS_NUM])
+
+        # 在圖像畫出圖像標籤
+        draw.text(text_origin, img_label, fill=(0, 0, 0), font=font)
         del draw
         
     return image
