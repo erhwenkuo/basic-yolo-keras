@@ -147,7 +147,7 @@ def draw_bgr_image_boxes(image_bgr, boxes, labels):
     image_rgb = image_bgr[:,:,::-1] 
 
     # 將[height, width, channels(RGB)]的numpy array轉換成PIL.Image物件
-    image = Image.fromarray(image_bgr)
+    image = Image.fromarray(image_rgb)
 
     # 設定字型
     font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
@@ -267,7 +267,7 @@ def draw_pil_image_boxes(image_pil, boxes, labels):
         labels: 所有圖像物件的類別標籤列表(順序要與訓練時的順序相同)
     """
     image = image_pil
-    
+
     # 設定字型
     font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                          size=np.floor(3e-2 * image.size[1]+0.5).astype('int32'))
